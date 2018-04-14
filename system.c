@@ -1,10 +1,6 @@
-#include "stm32f446xx.h"
-#define HSI_VALUE    ((uint32_t)16000000)
-#define HSE_VALUE    ((uint32_t)8000000)
-void SystemInit(void);
-uint32_t SystemCoreClock;   
-extern void SystemCoreClockUpdate(void);
-const uint8_t AHBPrescTable[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+#include "system.h"
+
+
 
 
 void SystemInit(void) {
@@ -42,14 +38,14 @@ void SystemInit(void) {
                  FLASH_ACR_LATENCY_5WS );                  /* Flash 5 wait state */
 
   RCC->CFGR |= (RCC_CFGR_HPRE_DIV1  |                      /* HCLK = SYSCLK */
-                RCC_CFGR_PPRE1_DIV2 |                      /* APB1 = HCLK/2 */
-                RCC_CFGR_PPRE2_DIV1  );                    /* APB2 = HCLK/1 */
+                RCC_CFGR_PPRE1_DIV4 |                      /* APB1 = HCLK/4 */
+                RCC_CFGR_PPRE2_DIV8  );                    /* APB2 = HCLK/8 */
 
   RCC->CR &= ~RCC_CR_PLLON;                                /* Disable PLL */
 
   /* PLL configuration:  VCO = HSI/M * N,  Sysclk = VCO/P */
   RCC->PLLCFGR = ( 16ul                   |                /* PLL_M =  16 */
-                 (200ul <<  6)            |                /* PLL_N = 200 */
+                 (360ul <<  6)            |                /* PLL_N = 200 */
                  (  0ul << 16)            |                /* PLL_P =   2 */
                  (RCC_PLLCFGR_PLLSRC_HSI) |                /* PLL_SRC = HSI */
                  (  7ul << 24)            |                /* PLL_Q =   7 */
@@ -68,52 +64,5 @@ void SystemInit(void) {
 
 
 
-void SystemCoreClockUpdate(void)
-{
-  uint32_t tmp = 0, pllvco = 0, pllp = 2, pllsource = 0, pllm = 2;
-  
-  /* Get SYSCLK source -------------------------------------------------------*/
-  tmp = RCC->CFGR & RCC_CFGR_SWS;
-
-  switch (tmp)
-  {
-    case 0x00:  /* HSI used as system clock source */
-      SystemCoreClock = HSI_VALUE;
-      break;
-    case 0x04:  /* HSE used as system clock source */
-      SystemCoreClock = HSE_VALUE;
-      break;
-    case 0x08:  /* PLL used as system clock source */
-
-      /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLL_M) * PLL_N
-         SYSCLK = PLL_VCO / PLL_P
-         */    
-      pllsource = (RCC->PLLCFGR & RCC_PLLCFGR_PLLSRC) >> 22;
-      pllm = RCC->PLLCFGR & RCC_PLLCFGR_PLLM;
-      
-      if (pllsource != 0)
-      {
-        /* HSE used as PLL clock source */
-        pllvco = (HSE_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
-      }
-      else
-      {
-        /* HSI used as PLL clock source */
-        pllvco = (HSI_VALUE / pllm) * ((RCC->PLLCFGR & RCC_PLLCFGR_PLLN) >> 6);
-      }
-
-      pllp = (((RCC->PLLCFGR & RCC_PLLCFGR_PLLP) >>16) + 1 ) *2;
-      SystemCoreClock = pllvco/pllp;
-      break;
-    default:
-      SystemCoreClock = HSI_VALUE;
-      break;
-  }
-  /* Compute HCLK frequency --------------------------------------------------*/
-  /* Get HCLK prescaler */
-  tmp = AHBPrescTable[((RCC->CFGR & RCC_CFGR_HPRE) >> 4)];
-  /* HCLK frequency */
-  SystemCoreClock >>= tmp;
-}
 
 

@@ -1,6 +1,6 @@
 #include "stm32f446xx.h"
 #include "delay.h"
-#include "lcd.h"
+#include "LCD_HD_HD44780_PCF8574.h"
 
 
 void send_data_4bit(uint8_t data, uint8_t RS){
